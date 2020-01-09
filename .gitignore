@@ -111,6 +111,7 @@ dmypy.json
 _credentials.py
 
 #captcha files
-captcha/*
+captcha/
+/captcha
 
 # End of https://www.gitignore.io/api/python

@@ -1,38 +1,22 @@
 from cloudant.client import CouchDB
 from cloudant.result import Result
 
+from unqlite import UnQLite
+
 import motor.motor_tornado
 import tornado.web
 
-class __couchdb__(object):
+class __operations__:
 
-	def connect(user, password):
-		return CouchDB(user, password, url='http://127.0.0.1:5984/', connect=True)
-
-	def create_database(client, group, location):
-		database = client.create_database(group + location)
-
-		if database.exists():
-			database = client[group + location]
-		else:
-			print("Database " + group + location + " wasn't created")
-
-
-	def write(client, group, location, data):
-
-		def record_data(client, group, location, data):
-			database = client[group + location]
-			print(data)
-			create_document = database.create_document(data)
-
+	def write(self, client, group, location, data):
 		if location == '_members':
 			data = {
 				'group': group,
 				'members': data
 			}
-			record_data(client, group, location, data)
+			self.record_data(client, group, location, data)
 
-		elif location == '_nodes':
+		elif location == '_users':
 			for user in data:
 				data = {
 					'_id': str(user['id']),
@@ -43,7 +27,7 @@ class __couchdb__(object):
 					#'city': user['city'] if 'city' in user.keys(),
 					#'university': user['universities'][0]['name'] if 'universities' in user.keys()
 				}
-				record_data(client, group, location, data)
+				self.record_data(client, group, location, data)
 
 		elif location == '_friends':
 			for record in data:
@@ -51,7 +35,7 @@ class __couchdb__(object):
 					'_id': str(list(record.keys())[0]),
 					'friends': list(record.values())[0] if type(list(record.values())[0]) is list else 'account is deleted or hidden'
 				}
-				record_data(client, group, location, data)
+				self.record_data(client, group, location, data)
 
 		elif location == '_ufg':
 			for record in data:
@@ -60,7 +44,48 @@ class __couchdb__(object):
 						'_id': str(list(record.keys())[0]),
 						'edges': list(record.values())[0]
 					}
-					record_data(client, group, location, data)
+					self.record_data(client, group, location, data)
+
+
+class __unqlite__(__operations__):
+
+	def connect(db_name):
+		return UnQLite(filename=db_name)
+
+	def create_database(client, group, location):
+		database = client.collection(group + location)
+
+		if database.exists(): pass
+		else:
+			database.create()
+			print("database " + group + location + " was created")
+
+		return database
+
+	def record_data(client, group, location, data):
+		database = client.collection(group + location)
+		database.store(data)
+
+	def read(client, group, location):
+		return client.collection(group + location)
+
+
+class __couchdb__(__operations__):
+
+	def connect(user, password):
+		return CouchDB(user, password, url='http://127.0.0.1:5984/', connect=True)
+
+	def create_database(client, group, location):
+		database = client.create_database(group + location)
+
+		if database.exists(): database = client[group + location]
+		else: print("Database " + group + location + " wasn't created")
+
+		return database
+
+	def record_data(client, group, location, data):
+		database = client[group + location]
+		create_document = database.create_document(data)
 
 	def read(client, group, location):
 		database = client[group + location]
@@ -68,7 +93,7 @@ class __couchdb__(object):
 
 
 
-class __mongodb__(object):
+class __mongodb__(__operations__):
 
 	async def tornado_server(server='mongodb://localhost:27017', database='test', port=8888):
 
