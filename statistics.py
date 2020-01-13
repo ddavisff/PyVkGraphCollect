@@ -4,6 +4,7 @@ from db import __couchdb__ as db
 from math import ceil
 from delta import __normalization__
 from credentials import *
+import numpy as np
 
 if LOGIN=='' or PASSWORD=='' or DB_LOGIN=='' or DB_PASSWORD=='' or GROUP=='': from _credentials import *
 
@@ -127,7 +128,7 @@ class merge:
 			db.write(db, client, group, '_ufg', [data])
 
 
-class init:
+class __init__:
 
 	def __init__(self, login, password, group, db_login, db_password, merge_type):
 
@@ -166,14 +167,29 @@ class init:
 			friends_db_recordings = db.read(self.client, self.group, '_friends')[0:]
 			user_data_db_recordings = db.read(self.client, self.group, '_users')[0:]
 
-			if len(members) == 0:
-				members = collect.members(self.client, self.session, self.group)
 
-			if len(friends_db_recordings) == 0:
-				collect.friends(self.client, self.session, self.group, members)
+			def compare_data_with_database(client, group, location, data, doc_value):
+				db_data = []
+				for value in db.read(client, group, location, docs=False)[0:]: db_data.append(value[doc_value])
+				print('compare in process')
+				print(type(db_data), type(data))
 
-			if len(user_data_db_recordings) == 0:
-				collect.user_data(self.client, self.session, self.group, members)
+				diff = np.asarray(np.setdiff1d(np.array(data).astype(int), np.array(db_data).astype(int))).tolist()
+
+				print(diff)
+
+				return diff
+
+
+			if len(members) == 0: members = collect.members(self.client, self.session, self.group)
+
+			if len(friends_db_recordings) == 0: collect.friends(self.client, self.session, self.group, members)
+			elif len(friends_db_recordings) > 0:
+				members_diff = compare_data_with_database(self.client, self.group, '_friends', members, 'id')
+				print('Collectiong has been continued')
+				collect.friends(self.client, self.session, self.group, members_diff)
+
+			if len(user_data_db_recordings) == 0: collect.user_data(self.client, self.session, self.group, members)
 
 			if len(members) and len(friends_db_recordings) and len(user_data_db_recordings): 
 				if self.group not in group_list['groups']['groups']:				
@@ -184,9 +200,7 @@ class init:
 					document.save()
 
 		else: 
-			if merge_type == 'ufg':
-				merge.UFG(self.client, self.group)
-
+			if merge_type == 'ufg': merge.UFG(self.client, self.group)
 
 parser = argparse.ArgumentParser(description='VK group and user information collector.')
 
@@ -199,4 +213,4 @@ parser.add_argument('--merge_type', metavar='merge_type', type=str, help='Merge 
 
 args = parser.parse_args()
 
-init(login=args.l, password=args.p, group=args.g, db_login=args.db_l, db_password=args.db_p, merge_type=args.merge_type)
+__init__(login=args.l, password=args.p, group=args.g, db_login=args.db_l, db_password=args.db_p, merge_type=args.merge_type)

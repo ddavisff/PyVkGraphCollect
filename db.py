@@ -87,9 +87,9 @@ class __couchdb__(__operations__):
 		database = client[group + location]
 		create_document = database.create_document(data)
 
-	def read(client, group, location):
+	def read(client, group, location, docs=True):
 		database = client[group + location]
-		return Result(database.all_docs, include_docs=True)
+		return Result(database.all_docs, include_docs=docs)
 
 
 
