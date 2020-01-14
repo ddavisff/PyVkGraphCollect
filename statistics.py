@@ -128,7 +128,7 @@ class merge:
 			db.write(db, client, group, '_ufg', [data])
 
 
-class __init__:
+class __initialize__:
 
 	def __init__(self, login, password, group, db_login, db_password, merge_type):
 
@@ -143,64 +143,82 @@ class __init__:
 		self.group = group
 		self.client = db.connect(user=self.db_login, password=self.db_password)
 
-		if merge_type == None:
-			self.session = __user__().auth(login=self.login, password=self.password)['session']
-			
-			#creates databases if not exist
-			group_list = db.create_database(self.client, '', 'group_list')
+		try: self.members = db.read(self.client, self.group, '_members')[0][0]['doc']['members']
+		except: self.members = []
 
-			if 'groups' not in group_list:
-				print('creating a doc')
+		if merge_type == None:
+			self.db_check_friends_and_users()
+			if self.friends_db_length == len(self.members) and self.user_data_db_length == len(self.members):
+				self.make_group_list_record()
+			else:
+				self.collect()
+				self.make_group_list_record()
+
+		else: 
+			if merge_type == 'ufg': 
+				merge.UFG(self.client, self.group)
+				self.make_group_list_record('ufg')
+
+	def compare_data_with_database(self, client, group, location, data, doc_value):
+		db_data = []
+		for value in db.read(client, group, location, docs=False)[0:]: db_data.append(value[doc_value])
+
+		diff = np.asarray(np.setdiff1d(np.array(data).astype(int), np.array(db_data).astype(int))).tolist()
+
+		return diff
+
+	def db_check_friends_and_users(self):
+		try:
+			friends_endpoint = '{0}/{1}'.format(self.client.server_url, self.group + '_friends')
+			users_endpoint = '{0}/{1}'.format(self.client.server_url, self.group + '_users')
+			self.friends_db_length = self.client.r_session.get(friends_endpoint).json()['doc_count']
+			self.user_data_db_length = self.client.r_session.get(users_endpoint).json()['doc_count']
+		except:
+			self.friends_db_length = 0
+			self.user_data_db_length = 0
+
+	def collect(self):
+
+		self.session = __user__().auth(login=self.login, password=self.password)['session']
+		
+		#creates databases if not exists
+		db.create_database(self.client, self.group, '_members')
+		db.create_database(self.client, self.group, '_friends')
+		db.create_database(self.client, self.group, '_users')
+
+		if len(self.members) == 0: self.members = collect.members(self.client, self.session, self.group)
+
+		print('finished to collect friends and members from db')
+
+		if self.friends_db_length == 0: collect.friends(self.client, self.session, self.group, self.members)
+		elif self.friends_db_length > 0:
+			members_diff = self.compare_data_with_database(self.client, self.group, '_friends', self.members, 'id')
+
+			collect.friends(self.client, self.session, self.group, members_diff)
+
+		if self.user_data_db_length == 0: collect.user_data(self.client, self.session, self.group, members)
+
+	def make_group_list_record(self, method=None):
+		group_list = db.create_database(self.client, '', 'group_list')
+
+		def check_group_document():
+			if self.group not in group_list:
 				data = {
-					'_id': 'groups',
-					'groups': []
+					'_id': self.group,
+					'methods': []
 				}
 				group_list.create_document(data)
 
-			db.create_database(self.client, self.group, '_members')
-			db.create_database(self.client, self.group, '_friends')
-			db.create_database(self.client, self.group, '_users')
+		def update_group_list_record(method=None):
+			previous_record = group_list[self.group]['methods']
 
-			try: members = db.read(self.client, self.group, '_members')[0][0]['doc']['members']
-			except: members = []
+			if method not in previous_record:
+				modified_record = previous_record.append(method)		
+				current_record = modified_record
+				current_record.save()
 
-			friends_db_recordings = db.read(self.client, self.group, '_friends')[0:]
-			user_data_db_recordings = db.read(self.client, self.group, '_users')[0:]
-
-
-			def compare_data_with_database(client, group, location, data, doc_value):
-				db_data = []
-				for value in db.read(client, group, location, docs=False)[0:]: db_data.append(value[doc_value])
-				print('compare in process')
-				print(type(db_data), type(data))
-
-				diff = np.asarray(np.setdiff1d(np.array(data).astype(int), np.array(db_data).astype(int))).tolist()
-
-				print(diff)
-
-				return diff
-
-
-			if len(members) == 0: members = collect.members(self.client, self.session, self.group)
-
-			if len(friends_db_recordings) == 0: collect.friends(self.client, self.session, self.group, members)
-			elif len(friends_db_recordings) > 0:
-				members_diff = compare_data_with_database(self.client, self.group, '_friends', members, 'id')
-				print('Collectiong has been continued')
-				collect.friends(self.client, self.session, self.group, members_diff)
-
-			if len(user_data_db_recordings) == 0: collect.user_data(self.client, self.session, self.group, members)
-
-			if len(members) and len(friends_db_recordings) and len(user_data_db_recordings): 
-				if self.group not in group_list['groups']['groups']:				
-					previous_record = group_list['groups']['groups']
-					document = group_list['groups']
-					previous_record.append(self.group)		
-					document['groups'] = previous_record
-					document.save()
-
-		else: 
-			if merge_type == 'ufg': merge.UFG(self.client, self.group)
+		check_group_document()
+		if method != None: update_group_list_record(method)
 
 parser = argparse.ArgumentParser(description='VK group and user information collector.')
 
@@ -213,4 +231,4 @@ parser.add_argument('--merge_type', metavar='merge_type', type=str, help='Merge 
 
 args = parser.parse_args()
 
-__init__(login=args.l, password=args.p, group=args.g, db_login=args.db_l, db_password=args.db_p, merge_type=args.merge_type)
+__initialize__(login=args.l, password=args.p, group=args.g, db_login=args.db_l, db_password=args.db_p, merge_type=args.merge_type)
