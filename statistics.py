@@ -114,17 +114,18 @@ class collect:
 
 class merge:
 
-	def UFG(client, group):
+	def UFG(client, group, members=None):
 		#user-friends-group creates intersection database of user's friends who have a subscription to the same group
 
-		members = db.read(client, group, '_members')[0:]
+		if members == None: members = db.read(client, group, '_members')[0:][0]['doc']['members']
+
 		friends = db.read(client, group, '_friends')[0:]
 
 		db.create_database(client, group, '_ufg')
 
 		for row in friends:
 			data = {}
-			data[row['doc']['_id']] = list(set(row['doc']['friends']).intersection(set(members[0]['doc']['members'])))
+			data[row['doc']['_id']] = list(set(row['doc']['friends']).intersection(set(members)))
 			db.write(db, client, group, '_ufg', [data])
 
 
@@ -155,17 +156,22 @@ class __initialize__:
 				self.make_group_list_record()
 
 		else: 
-			if merge_type == 'ufg': 
-				merge.UFG(self.client, self.group)
-				self.make_group_list_record('ufg')
+			if merge_type == 'ufg':
+				if self.db_check_merge_type(merge_type) != 0:
+					print(0)
+					members_diff = self.compare_data_with_database('_' + merge_type, self.members, 'id')
+					merge.UFG(self.client, self.group, members_diff)
+				else: 
+					print(1)
+					merge.UFG(self.client, self.group)
 
-	def compare_data_with_database(self, client, group, location, data, doc_value):
+				self.make_group_list_record(merge_type)
+
+	def compare_data_with_database(self, location, data, doc_value):
 		db_data = []
-		for value in db.read(client, group, location, docs=False)[0:]: db_data.append(value[doc_value])
+		for value in db.read(self.client, self.group, location, docs=False)[0:]: db_data.append(value[doc_value])
 
-		diff = np.asarray(np.setdiff1d(np.array(data).astype(int), np.array(db_data).astype(int))).tolist()
-
-		return diff
+		return np.asarray(np.setdiff1d(np.array(data).astype(int), np.array(db_data).astype(int))).tolist()
 
 	def db_check_friends_and_users(self):
 		try:
@@ -176,6 +182,12 @@ class __initialize__:
 		except:
 			self.friends_db_length = 0
 			self.user_data_db_length = 0
+
+	def db_check_merge_type(self, merge_type):
+		try:
+			merge_type_endpoint = '{0}/{1}'.format(self.client.server_url, self.group + '_' + merge_type)
+			return self.client.r_session.get(merge_type_endpoint).json()['doc_count']
+		except: return 0
 
 	def collect(self):
 
@@ -188,11 +200,9 @@ class __initialize__:
 
 		if len(self.members) == 0: self.members = collect.members(self.client, self.session, self.group)
 
-		print('finished to collect friends and members from db')
-
 		if self.friends_db_length == 0: collect.friends(self.client, self.session, self.group, self.members)
 		elif self.friends_db_length > 0:
-			members_diff = self.compare_data_with_database(self.client, self.group, '_friends', self.members, 'id')
+			members_diff = self.compare_data_with_database('_friends', self.members, 'id')
 
 			collect.friends(self.client, self.session, self.group, members_diff)
 
