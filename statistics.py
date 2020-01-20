@@ -12,6 +12,7 @@ import argparse
 import time
 
 import networkx as nx
+from networkx_viewer import Viewer
 
 import matplotlib.pyplot as plt
 
@@ -145,7 +146,7 @@ class merge:
 
 class __initialize__:
 
-	def __init__(self, login, password, group, db_login, db_password, merge_type, build, collect, plot):
+	def __init__(self, login, password, group, db_login, db_password, merge_type, build, collect, plot, viewer):
 
 		if login == None: login = LOGIN
 		if password == None: password = PASSWORD
@@ -197,9 +198,17 @@ class __initialize__:
 				little = self.graph.subgraph(little_v)
 
 				plt.figure()
-				pos = nx.kamada_kawai_layout(graph)
-				nx.draw(little, node_size=200)
+				pos = nx.kamada_kawai_layout(little_v)
+				nx.draw(little, node_size=200, dpi=100)
 				plt.show()
+
+			elif viewer == True:
+				little_v = list(sorted(nx.connected_components(self.graph), key=len, reverse=True)[1])
+				little = self.graph.subgraph(little_v)
+
+				alg = nx.kamada_kawai_layout(little_v)
+				app = Viewer(alg)
+				app.mainloop()
 
 
 	def compare_data_with_database(self, location, data, doc_value):
@@ -293,8 +302,9 @@ parser.add_argument('-c', '--collect', help='Collect data', action='store_true')
 parser.add_argument('-m', '--merge_type', metavar='merge_type', type=str, help='Merging databases with merge type')
 parser.add_argument('-b', '--build', metavar='build', type=str, help='Build graph')
 parser.add_argument('--plot', help='Plot network', action='store_true')
+parser.add_argument('--viewer', help='Plot network in viewer', action='store_true')
 
 
 args = parser.parse_args()
 
-__initialize__(login=args.login, password=args.password, group=args.group, db_login=args.db_login, db_password=args.db_password, collect=args.collect, merge_type=args.merge_type, build=args.build, plot=args.plot)
+__initialize__(login=args.login, password=args.password, group=args.group, db_login=args.db_login, db_password=args.db_password, collect=args.collect, merge_type=args.merge_type, build=args.build, plot=args.plot, viewer=args.viewer)
