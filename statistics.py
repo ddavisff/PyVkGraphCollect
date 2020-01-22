@@ -1,6 +1,3 @@
-#def my_imports(module_name):
-#    globals()[module_name] = __import__(module_name)
-
 from user import user
 
 from collect import collect
