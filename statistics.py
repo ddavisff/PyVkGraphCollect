@@ -30,6 +30,7 @@ class __initialize__:
 		if group == None: group = GROUP
 		if db_login == None: db_login = DB_LOGIN
 		if db_password == None: db_password = DB_PASSWORD
+		print(db_address)
 		if db_address == None: db_address = 'http://127.0.0.1:5984/'
 
 		self.login, self.password = login, password
@@ -124,5 +125,4 @@ parser.add_argument('--viewer', help='Plot network in viewer', action='store_tru
 
 args = parser.parse_args()
 
-__initialize__(login=args.login, password=args.password, group=args.group, db_login=args.db_login, db_password=args.db_password, \
-	db_address=args.db_address, collect=args.collect, merge_type=args.merge_type, build=args.build, plot=args.plot, viewer=args.viewer)
+__initialize__(login=args.login, password=args.password, group=args.group, db_login=args.db_login, db_password=args.db_password, db_address=args.db_address, collect=args.collect, merge_type=args.merge_type, build=args.build, plot=args.plot, viewer=args.viewer)
