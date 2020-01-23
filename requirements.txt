@@ -3,6 +3,8 @@ vk_api>=11.6.0
 python3_anticaptcha>=1.5.4
 matplotlib>=3.1.2
 networkx>=2.4
+networkx_viewer
 unqlite>=0.7.1
 motor>=2.0.0
 tornado>=6.0.3
+base36

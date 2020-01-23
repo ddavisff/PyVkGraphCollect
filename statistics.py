@@ -23,18 +23,18 @@ import matplotlib.pyplot as plt
 
 class __initialize__:
 
-	def __init__(self, login, password, group, db_login, db_password, merge_type, build, collect, plot, viewer):
+	def __init__(self, login, password, group, db_login, db_password, db_address, merge_type, build, collect, plot, viewer):
 
 		if login == None: login = LOGIN
 		if password == None: password = PASSWORD
 		if group == None: group = GROUP
 		if db_login == None: db_login = DB_LOGIN
 		if db_password == None: db_password = DB_PASSWORD
+		if db_address == None: db_address = 'http://127.0.0.1:5984/'
 
 		self.login, self.password = login, password
-		self.db_login, self.db_password = db_login, db_password
 		self.group = group
-		self.client = db.connect(user=self.db_login, password=self.db_password)
+		self.client = db.connect(db_login, db_password, db_address)
 
 		try: self.members = db.read(self.client, self.group, '_members')[0][0]['doc']['members']
 		except: self.members = []

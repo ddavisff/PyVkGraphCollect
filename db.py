@@ -98,8 +98,8 @@ class unqlite(__operations__):
 
 class couchdb(__operations__):
 
-	def connect(user, password):
-		return CouchDB(user, password, url='http://127.0.0.1:5984/', connect=True)
+	def connect(user, password, db_address):
+		return CouchDB(user, password, url=db_ADDRESS, connect=True)
 
 	def create_database(client, group, location):
 		database = client.create_database(group + location)
