@@ -114,6 +114,7 @@ parser.add_argument('-p', '--password', metavar='password', type=str, help='VK p
 parser.add_argument('-g', '--group', metavar='group', type=str, help='VK group')
 parser.add_argument('-db_l', '--db_login', metavar='db_login', type=str, help='Database login')
 parser.add_argument('-db_p', '--db_password', metavar='db_password', type=str, help='Database password')
+parser.add_argument('-db_a', '--db_address', metavar='db_address', type=str, help='Database address (localhost:5984 by default)')
 parser.add_argument('-c', '--collect', help='Collect data', action='store_true')
 parser.add_argument('-m', '--merge_type', metavar='merge_type', type=str, help='Merging databases with merge type')
 parser.add_argument('-b', '--build', metavar='build', type=str, help='Build graph')
@@ -124,4 +125,4 @@ parser.add_argument('--viewer', help='Plot network in viewer', action='store_tru
 args = parser.parse_args()
 
 __initialize__(login=args.login, password=args.password, group=args.group, db_login=args.db_login, db_password=args.db_password, \
-	collect=args.collect, merge_type=args.merge_type, build=args.build, plot=args.plot, viewer=args.viewer)
+	db_address=args.db_address, collect=args.collect, merge_type=args.merge_type, build=args.build, plot=args.plot, viewer=args.viewer)
