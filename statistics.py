@@ -30,8 +30,7 @@ class __initialize__:
 		if group == None: group = GROUP
 		if db_login == None: db_login = DB_LOGIN
 		if db_password == None: db_password = DB_PASSWORD
-		print(db_address)
-		if db_address == None: db_address = 'http://127.0.0.1:5984/'
+		if db_address == None: db_address = '127.0.0.1:5984'
 
 		self.login, self.password = login, password
 		self.group = group
@@ -43,8 +42,9 @@ class __initialize__:
 		self.compare_db_length = compare.db_friends_and_users(self.client, self.group) #returns {'friends': friends_db_length, 'user_data': user_data_db_length}
 
 		if collect == True:
-			print('k')
-			if self.compare_db_length['friends'] == len(self.members) and self.compare_db_length['user_data'] == len(self.members):
+			if self.compare_db_length['friends'] == len(self.members) \
+			and self.compare_db_length['user_data'] == len(self.members) \
+			and len(self.members) != 0:
 				db.write(db, self.client, self.group, 'group_list')
 			else:
 				self.collect_data()
@@ -98,14 +98,27 @@ class __initialize__:
 		db.create_database(self.client, self.group, '_users')
 
 		if len(self.members) == 0: self.members = collect.members(self.client, self.session, self.group)
-
+		
 		if self.compare_db_length['friends'] == 0: collect.friends(self.client, self.session, self.group, self.members)
-		elif self.compare_db_length['friends'] > 0:
-			members_diff = compare.data_with_database(self.client, self.group, '_friends', self.members, 'id')
+		if self.compare_db_length['user_data'] == 0: collect.user_data(self.client, self.session, self.group, self.members)
 
-			collect.friends(self.client, self.session, self.group, members_diff)
+		def comparison(location, doc_value): return compare.data_with_database(self.client, self.group, location, self.members, doc_value)
 
-		if self.compare_db_length['user_data']== 0: collect.user_data(self.client, self.session, self.group, members)
+		if self.compare_db_length['friends'] > 0:
+			location = '_friends'
+			doc_value = 'id'
+			
+			diff = comparison(location, doc_value)
+
+			collect.friends(self.client, self.session, self.group, diff)
+
+		if self.compare_db_length['user_data'] > 0:
+			location = '_users'
+			doc_value = 'id'
+			
+			diff = comparison(location, doc_value)
+
+			collect.user_data(self.client, self.session, self.group, diff)
 
 
 parser = argparse.ArgumentParser(description='VK group and user information collector.')
@@ -122,7 +135,7 @@ parser.add_argument('-b', '--build', metavar='build', type=str, help='Build grap
 parser.add_argument('--plot', help='Plot network', action='store_true')
 parser.add_argument('--viewer', help='Plot network in viewer', action='store_true')
 
-
 args = parser.parse_args()
 
-__initialize__(login=args.login, password=args.password, group=args.group, db_login=args.db_login, db_password=args.db_password, db_address=args.db_address, collect=args.collect, merge_type=args.merge_type, build=args.build, plot=args.plot, viewer=args.viewer)
+__initialize__(login=args.login, password=args.password, group=args.group, db_login=args.db_login, db_password=args.db_password, \
+	db_address=args.db_address, collect=args.collect, merge_type=args.merge_type, build=args.build, plot=args.plot, viewer=args.viewer)

@@ -2,6 +2,11 @@ from vk_api.execute import VkFunction
 from vk_api.exceptions import ApiError
 from db import couchdb as db
 
+from math import ceil
+import time
+
+import concurrent.futures
+
 class collect:
 
 	def members(client, session, group, retry=3, interval=3, record=True):
@@ -76,10 +81,10 @@ class collect:
 
 		''')
 
-		users_friends = []
-		users_friends_encoded = []
+		##users_friends = []
+		##users_friends_encoded = []
 
-		for user in members:
+		def request(user):	
 			current = []
 			friends = {}
 			friends[user] = subject_friends(session, user, 0)
@@ -87,13 +92,29 @@ class collect:
 
 			#print(friends.values())
 			#print(current)
-			if record == True: 
+			if record == True:
+				print(members.index(user))
 				db.write(db, client, group, '_friends', current)
 			
-			users_friends.append(friends)
+			##users_friends.append(friends)
 
 			# friends_encoded = {}
 			# friends_encoded[user] = friends
 			# users_friends_encoded.append(friends_encoded)
 
-		return users_friends
+			##return users_friends
+
+		def request_future(index):
+			for user in members[index*25:index*25+25]: request(user)
+
+		members_frame_length = ceil(len(members) / 25)
+
+		#def processes(): 
+			#for index in range(0, members_frame_length): request_future(index)
+
+		with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor: 
+			for index in range(0, members_frame_length): executor.submit(request_future, index)
+
+		#loop = asyncio.get_event_loop()
+
+		#loop.run_until_complete()

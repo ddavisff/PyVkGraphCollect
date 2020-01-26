@@ -38,6 +38,8 @@ class compare:
 
 		diff = np.asarray(np.setdiff1d(np.array(data).astype(int), np.array(db_data).astype(int))).tolist()
 
+		print(len(diff))
+
 		return diff
 
 	def db_friends_and_users(client, group):
